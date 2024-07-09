@@ -41,4 +41,7 @@ class UserBusinessMapping(Auditable,models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.account.name}"
     
+    class Meta:
+        db_table = 'user_business_mapping'
+    
     
