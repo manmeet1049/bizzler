@@ -2,12 +2,12 @@ from django.db import models
 from django.conf import settings
 
 class Business(models.Model):
-    PRODUCT_BASED = 'product'
-    SUBSCRIPTION_BASED = 'subscription'
+    PRODUCT_BASED = 'PRODUCT'
+    SUBSCRIPTION_BASED = 'SUBSCRIPTION'
     
     BUSINESS_TYPE_CHOICES = [
-        (PRODUCT_BASED, 'Product Based'),
-        (SUBSCRIPTION_BASED, 'Subscription Based'),
+        (PRODUCT_BASED, 'PRODUCT'),
+        (SUBSCRIPTION_BASED, 'SUBSCRIPTION'),
     ]
 
     name = models.CharField(max_length=255)
