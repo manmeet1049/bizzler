@@ -67,6 +67,8 @@ target/
 # Environments
 .venv
 venv/
+env_wsl/
+.env_wsl
 ENV/
 
 # Rope project settings
