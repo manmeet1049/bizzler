@@ -8,7 +8,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.serializers import LoginSerializer
 from users.models import User
-from business.models import Invitation
+from business.models.models import Invitation
 
 class LoginAPIView(APIView):
     def post(self, request):

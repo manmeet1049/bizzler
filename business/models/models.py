@@ -21,7 +21,7 @@ class Business(Auditable,models.Model):
     name = models.CharField(max_length=255)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     type = models.CharField(
-        max_length=15,
+        max_length=18,
         choices=BUSINESS_TYPE_CHOICES,
     )
     phone = models.CharField(max_length=15, blank=True, null=True)

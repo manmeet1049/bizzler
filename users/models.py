@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 
 from users.manager import CustomUserManager
-from business.models import Business
+from business.models.models import Business
 
 
 class Auditable(models.Model):
