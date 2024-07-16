@@ -16,7 +16,7 @@ from business.permissions import IsBusinessOwner
 @permission_classes([IsAuthenticated,IsBusinessOwner])
 def add_plan(request):
     
-    business_id = int(request.META["HTTP_X_BUSINESS_ID"])
+    business_id = int(request.META.get("HTTP_X_BUSINESS_ID"))
     business = get_object_or_404(Business, id=business_id)
     
     data = json.loads(request.body)
