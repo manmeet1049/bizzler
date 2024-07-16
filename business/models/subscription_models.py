@@ -9,6 +9,7 @@ class Plan(Auditable,models.Model):
     
     name=models.CharField(max_length=50,null=True)
     duration= models.IntegerField(null=False)
+    duration = models.CharField(max_length=10, null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     added_by=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     business = models.ForeignKey(Business,on_delete=models.CASCADE)
@@ -18,6 +19,17 @@ class Plan(Auditable,models.Model):
         verbose_name = "Subscriber"
         verbose_name_plural = "Subscribers"
         db_table='subscription_plans'
+        
+    def set_duration(self, count, d_type):
+        duration_dict= {"MONTHLY":"M",
+                 "YEARLY":"Y",
+                 "DAILY":"D"
+                 }
+        
+        d_type= d_type if not duration_dict.get(d_type) else duration_dict[d_type]
+        
+        self.duration = f"{count} {d_type}"
+        
         
 class Subscriber(models.Model):
     name = models.CharField(max_length=255)
