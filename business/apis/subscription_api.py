@@ -80,8 +80,22 @@ def get_plan(request):
         }
     
     return Response({"message":"plan fetched successfuly", "plan":plan_data},status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsBusinessOwner, HasSubscriptionType])
+def delete_plan(request):
+    business_id = int(request.META.get("HTTP_X_BUSINESS_ID"))
+    plan_id = request.GET.get('id')
     
+    try:
+        plan = Plan.objects.get(id=plan_id, business_id=business_id)
+    except Plan.DoesNotExist:
+        return Response({"message": "Failed to delete the plan, invalid ID."}, status=status.HTTP_404_NOT_FOUND)
     
+    plan.delete()
+    
+    return Response({"message": "Plan deleted successfully."}, status=status.HTTP_200_OK)  
     
     
 
