@@ -8,12 +8,12 @@ from django.http import JsonResponse
 
 from business.models.subscription_models import Plan
 from business.models.models import Business
-from business.permissions import IsBusinessOwner
+from business.permissions import IsBusinessOwner, IsBusinessMember, HasSubscriptionType
 
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated,IsBusinessOwner])
+@permission_classes([IsAuthenticated,IsBusinessOwner,HasSubscriptionType])
 def add_plan(request):
     
     business_id = int(request.META.get("HTTP_X_BUSINESS_ID"))
@@ -57,6 +57,31 @@ def add_plan(request):
     plan.save()
     
     return Response({"message": "Plan added successfuly.", "id": plan.id}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated,IsBusinessMember, HasSubscriptionType])
+def get_plan(request):
+    business_id = int(request.META.get("HTTP_X_BUSINESS_ID"))
+    plan_id= request.GET.get('id')
+    
+    try:
+        plan=Plan.objects.get(id=plan_id,business_id=business_id)
+    except:
+        return Response({"message":"Failed to fetch the plan, invalid ID."}, status=status.HTTP_404_NOT_FOUND)
+    
+    plan_data = {
+            "id": plan.id,
+            "name": plan.name,
+            "duration": plan.duration,
+            "price": str(plan.price),
+            "added_by": plan.added_by.id,
+            "business": plan.business.id
+        }
+    
+    return Response({"message":"plan fetched successfuly", "plan":plan_data},status=status.HTTP_200_OK)
+    
+    
     
     
 
