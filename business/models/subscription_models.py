@@ -8,7 +8,6 @@ User = settings.AUTH_USER_MODEL
 class Plan(Auditable,models.Model):
     
     name=models.CharField(max_length=50,null=True)
-    duration= models.IntegerField(null=False)
     duration = models.CharField(max_length=10, null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     added_by=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -34,9 +33,9 @@ class Plan(Auditable,models.Model):
 class Subscriber(models.Model):
     name = models.CharField(max_length=255)
     business = models.ForeignKey(Business,on_delete=models.CASCADE)
-    plan = models.ForeignKey(Plan,on_delete=models.CASCADE)
+    plan = models.ForeignKey(Plan,on_delete=models.CASCADE,null=True)
     email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=15, unique=True)
+    phone = models.CharField(max_length=15, unique=True, null=True)
     plan_start_date = models.DateField()
     plan_end_date = models.DateField()
 

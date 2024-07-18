@@ -3,12 +3,15 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
+from django.utils import timezone
+from datetime import datetime
 
-from business.models.subscription_models import Plan
+from business.models.subscription_models import Plan, Subscriber
 from business.models.models import Business
-from business.permissions import IsBusinessOwner, IsBusinessMember, HasSubscriptionType
+from business.permissions import IsBusinessOwner, IsBusinessMember, HasSubscriptionType, IsPlanValid
+from utils.common import validate_required_fields, parse_duration
 
 
 
@@ -22,9 +25,10 @@ def add_plan(request):
     data = json.loads(request.body)
     
     required_fields = ['name', 'duration', 'type', 'price']
-    missing_fields = [field for field in required_fields if not data.get(field)]  
-    if missing_fields:
-        return JsonResponse({"message": f"Missing fields: {', '.join(missing_fields)}"}, status=400)
+    try:
+        validate_required_fields(required_fields=required_fields,data=data)
+    except ValidationError as e:
+        return Response(e.detail, status=400)
     
     name = data.get('name')
     duration = data.get('duration')
@@ -99,5 +103,82 @@ def delete_plan(request):
     
     
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsBusinessMember, HasSubscriptionType, IsPlanValid])
+def add_subscriber(request):
+    user=request.user
+    business_id = request.META.get("HTTP_X_BUSINESS_ID")
+    
+    data = json.loads(request.body)
+    
+    plan_id = data.get('plan') 
+    
+    if plan_id:
+        required_fields=['name', 'email']
+    else:
+        required_fields=['name', 'email', 'start_date','end_date']
+        
+    
+    try:
+        validate_required_fields(required_fields=required_fields,data=data)
+    except ValidationError as e:
+        return Response(e.detail, status=400)
+    
+    name = data.get('name')
+    name = data.get('name')
+    email = data.get('email')
+    phone = data.get('phone')
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    
+    if plan_id:
+        plan = get_object_or_404(Plan, id=plan_id)
+    else:
+        plan=None
+        
+    business = get_object_or_404(Business, id=business_id)
+    
+    if start_date is None:
+        start_date = timezone.now().date()
+    else:
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except:
+            return Response({"message": "Invalid start_date format. Use YYYY-MM-DD."}, status=400)
+            
+    
+    if end_date is None:
+        try:
+            duration_timedelta = parse_duration(plan.duration)
+            end_date = start_date + duration_timedelta
+        except ValueError as e:
+            return Response({"message": str(e)}, status=400)
+    else:
+        try:
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"message": "Invalid end_date format. Use YYYY-MM-DD."}, status=400)
 
-
+        
+    subscriber = Subscriber.objects.create(
+        name=name,
+        business=business,
+        plan=plan,
+        email=email,
+        phone=phone,
+        plan_start_date=start_date,
+        plan_end_date=end_date
+    )
+        
+    subscriber_data = {
+        "id": subscriber.id,
+        "name": subscriber.name,
+        "business": subscriber.business.id,
+        "plan": subscriber.plan.id if plan else "-",
+        "email": subscriber.email,
+        "phone": subscriber.phone,
+        "plan_start_date": subscriber.plan_start_date,
+        "plan_end_date": subscriber.plan_end_date
+    }
+        
+    return Response({"message": "Subscriber added successfully", "subscriber": subscriber_data})
