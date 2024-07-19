@@ -115,7 +115,7 @@ def add_subscriber(request):
     if plan_id:
         required_fields=['name', 'email']
     else:
-        required_fields=['name', 'email', 'start_date','end_date']
+        required_fields=['name', 'email', 'start_date','end_date','amount']
         
     
     try:
