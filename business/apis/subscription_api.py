@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from datetime import datetime
 
-from business.models.subscription_models import Plan, Subscriber
+from business.models.subscription_models import Plan, Subscriber, Transaction, Subscription
 from business.models.models import Business
 from business.permissions import IsBusinessOwner, IsBusinessMember, HasSubscriptionType, IsPlanValid
 from utils.common import validate_required_fields, parse_duration
@@ -129,6 +129,7 @@ def add_subscriber(request):
     phone = data.get('phone')
     start_date = data.get('start_date')
     end_date = data.get('end_date')
+    amount=data.get('amount')
     
     if plan_id:
         plan = get_object_or_404(Plan, id=plan_id)
@@ -162,25 +163,43 @@ def add_subscriber(request):
     subscriber = Subscriber.objects.create(
         name=name,
         business=business,
-        plan=plan,
         email=email,
         phone=phone,
+    )
+    
+    subscription= Subscription.objects.create(
+        subscriber=subscriber,
+        plan=plan,
         plan_start_date=start_date,
         plan_end_date=end_date
+        
     )
+    transaction= Transaction.objects.create(
+        plan=subscription.plan,
+        conducted_by=user,
+        business=business,
+        amount= amount if amount else subscription.plan.price
+    )
+    
+    subscription.transaction=transaction
+    subscription.save()
         
     subscriber_data = {
         "id": subscriber.id,
         "name": subscriber.name,
         "business": subscriber.business.id,
-        "plan": subscriber.plan.id if plan else "-",
         "email": subscriber.email,
         "phone": subscriber.phone,
-        "plan_start_date": subscriber.plan_start_date,
-        "plan_end_date": subscriber.plan_end_date
+    }
+    subscription_data={
+        "id":subscription.id,
+        "plan": subscription.plan.id if plan else "-",
+        "plan_start_date": subscription.plan_start_date,
+        "plan_end_date": subscription.plan_end_date,
+        'transaction':transaction.id
     }
         
-    return Response({"message": "Subscriber added successfully", "subscriber": subscriber_data})
+    return Response({"message": "Subscriber added successfully", "subscriber_details": subscriber_data,"subscription_details":subscription_data},status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])

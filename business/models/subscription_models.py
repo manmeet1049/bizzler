@@ -30,14 +30,11 @@ class Plan(Auditable,models.Model):
         self.duration = f"{count} {d_type}"
         
         
-class Subscriber(models.Model):
+class Subscriber(Auditable,models.Model):
     name = models.CharField(max_length=255)
     business = models.ForeignKey(Business,on_delete=models.CASCADE)
-    plan = models.ForeignKey(Plan,on_delete=models.CASCADE,null=True)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15, unique=True, null=True)
-    plan_start_date = models.DateField()
-    plan_end_date = models.DateField()
 
     class Meta:
         verbose_name = "Subscriber"
@@ -49,10 +46,9 @@ class Subscriber(models.Model):
         return self.name
         
         
-class Transaction(models.Model):
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
+class Transaction(Auditable,models.Model):
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE)
     conducted_by = models.ForeignKey(User, on_delete=models.CASCADE)
     business = models.ForeignKey(Business,on_delete=models.CASCADE)  
 
@@ -63,3 +59,19 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"Transaction by {self.customer.name} for {self.product.name}"
+    
+class Subscription(Auditable,models.Model):
+    subscriber=models.ForeignKey(Subscriber,on_delete=models.CASCADE)
+    plan = models.ForeignKey(Plan,on_delete=models.CASCADE,null=True)
+    plan_start_date = models.DateField()
+    plan_end_date = models.DateField()
+    transaction= models.ForeignKey('Transaction', null=True, on_delete=models.CASCADE)
+    
+    class Meta:
+        verbose_name = "Subscription"
+        verbose_name_plural = "Subscriptions"
+        db_table='subscription_subscriptions'
+        
+
+    def __str__(self):
+        return self.name
