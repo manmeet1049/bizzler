@@ -79,7 +79,6 @@ class Subscription(Auditable,models.Model):
         return self.subscriber.name
     
     def check_and_update_status(self):
-        print(self)
         if self.plan_end_date < timezone.now().date():
             self.active = False
             self.save()
