@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 
 from business.models.models import Auditable, Business
+from django.utils import timezone
 
 User = settings.AUTH_USER_MODEL
 
@@ -66,6 +67,7 @@ class Subscription(Auditable,models.Model):
     plan_start_date = models.DateField()
     plan_end_date = models.DateField()
     transaction= models.ForeignKey('Transaction', null=True, on_delete=models.CASCADE)
+    active=models.BooleanField(default=True)
     
     class Meta:
         verbose_name = "Subscription"
@@ -74,4 +76,10 @@ class Subscription(Auditable,models.Model):
         
 
     def __str__(self):
-        return self.name
+        return self.subscriber.name
+    
+    def check_and_update_status(self):
+        print(self)
+        if self.plan_end_date < timezone.now().date():
+            self.active = False
+            self.save()
