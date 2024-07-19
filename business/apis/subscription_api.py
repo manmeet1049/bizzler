@@ -217,11 +217,18 @@ def get_subscriber(request):
             "id": subscriber.id,
             "name": subscriber.name,
             "email": subscriber.email,
-            "plan": subscriber.plan.name,
-            "duration": subscriber.plan.duration,
             "phone": subscriber.phone,
-            "plan_start_date": subscriber.plan_start_date,
-            "plan_end_date": subscriber.plan_end_date,
         }
+    try:
+        active_subscription= Subscription.objects.get(subscriber=subscriber,active=True)
+        active_subscription_data={
+            "id":active_subscription.id,
+            "plan":active_subscription.plan.name if active_subscription.plan else "-",
+            "duration":active_subscription.plan.duration if active_subscription.plan else "-",
+            "start_date":active_subscription.plan_start_date,
+            "end_date":active_subscription.plan_end_date,
+        }
+    except:
+        active_subscription_data= None
     
-    return Response({"message":"Subscriber fetched successfuly", "subscriber":subscriber_data},status=status.HTTP_200_OK)
+    return Response({"message":"Subscriber fetched successfuly", "subscriber":subscriber_data,"active_subscription":active_subscription_data},status=status.HTTP_200_OK)
