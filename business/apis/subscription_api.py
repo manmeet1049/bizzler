@@ -99,10 +99,9 @@ def delete_plan(request):
     
     plan.delete()
     
-    return Response({"message": "Plan deleted successfully."}, status=status.HTTP_200_OK)  
+    return Response({"message": "Plan deleted successfully."}, status=status.HTTP_200_OK)     
     
     
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsBusinessMember, HasSubscriptionType, IsPlanValid])
 def add_subscriber(request):
@@ -182,3 +181,28 @@ def add_subscriber(request):
     }
         
     return Response({"message": "Subscriber added successfully", "subscriber": subscriber_data})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated,IsBusinessMember, HasSubscriptionType])
+def get_subscriber(request):
+    business_id = int(request.META.get("HTTP_X_BUSINESS_ID"))
+    subscriber_id= request.GET.get('id')
+    
+    try:
+        subscriber=Subscriber.objects.get(id=subscriber_id,business_id=business_id)
+    except:
+        return Response({"message":"Failed to fetch the subscriber, invalid ID."}, status=status.HTTP_404_NOT_FOUND)
+    
+    subscriber_data = {
+            "id": subscriber.id,
+            "name": subscriber.name,
+            "email": subscriber.email,
+            "plan": subscriber.plan.name,
+            "duration": subscriber.plan.duration,
+            "phone": subscriber.phone,
+            "plan_start_date": subscriber.plan_start_date,
+            "plan_end_date": subscriber.plan_end_date,
+        }
+    
+    return Response({"message":"Subscriber fetched successfuly", "subscriber":subscriber_data},status=status.HTTP_200_OK)
