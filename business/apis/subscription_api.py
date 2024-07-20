@@ -232,3 +232,117 @@ def get_subscriber(request):
         active_subscription_data= None
     
     return Response({"message":"Subscriber fetched successfuly", "subscriber":subscriber_data,"active_subscription":active_subscription_data},status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsBusinessMember, HasSubscriptionType, IsPlanValid])
+def renew_subscription(request):
+    user=request.user
+    business_id = request.META.get("HTTP_X_BUSINESS_ID")
+    
+    data = json.loads(request.body)
+    
+    plan_id = data.get('plan') 
+    
+    if plan_id:
+        required_fields=['subscriber']
+    else:
+        required_fields=['subscriber','start_date','end_date','amount']
+        
+    
+    try:
+        validate_required_fields(required_fields=required_fields,data=data)
+    except ValidationError as e:
+        return Response(e.detail, status=400)
+    
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    amount=data.get('amount')
+    subscriber=data.get('subscriber')
+    
+    try:
+        existing_active_subscription = Subscription.objects.filter(
+        subscriber=subscriber,
+        active=True
+                    ).order_by('-created_at').first()
+        existing_active_subscription.check_and_update_status()
+        print('existing: ',existing_active_subscription)
+        
+    except:
+        existing_active_subscription=None
+        
+    
+    if plan_id:
+        plan = get_object_or_404(Plan, id=plan_id)
+    else:
+        plan=None
+        
+    business = get_object_or_404(Business, id=business_id)
+    
+    if start_date is None:
+        if existing_active_subscription:
+            start_date = existing_active_subscription.plan_end_date
+        else:
+            start_date=timezone.now().date()
+    else:
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except:
+            return Response({"message": "Invalid start_date format. Use YYYY-MM-DD."}, status=400)
+            
+    
+    if end_date is None:
+        try:
+            duration_timedelta = parse_duration(plan.duration)
+            end_date = start_date + duration_timedelta
+        except ValueError as e:
+            return Response({"message": str(e)}, status=400)
+    else:
+        try:
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        except ValueError:
+            return Response({"message": "Invalid end_date format. Use YYYY-MM-DD."}, status=400)
+
+        
+    subscriber = get_object_or_404(Subscriber, id=subscriber)
+    
+    subscription= Subscription.objects.create(
+        subscriber=subscriber,
+        plan=plan,
+        plan_start_date=start_date,
+        plan_end_date=end_date
+        
+    )
+    transaction= Transaction.objects.create(
+        plan=subscription.plan,
+        conducted_by=user,
+        business=business,
+        amount= amount if amount else subscription.plan.price
+    )
+    
+    subscription.transaction=transaction
+    subscription.save()
+        
+    subscriber_data = {
+        "id": subscriber.id,
+        "name": subscriber.name,
+        "business": subscriber.business.id,
+        "email": subscriber.email,
+        "phone": subscriber.phone,
+    }
+    subscription_data={
+        "id":subscription.id,
+        "plan": subscription.plan.id if plan else "-",
+        "plan_start_date": subscription.plan_start_date,
+        "plan_end_date": subscription.plan_end_date,
+        'transaction':transaction.id
+    }
+        
+    return Response(
+                    {"message": "Subscription renewed successfully",
+                     "qued": True if existing_active_subscription else False,
+                     "subscriber_details": subscriber_data,
+                     "previos_subscription":"Previous Subscription found." if existing_active_subscription else "Didn't have previously active subscription",
+                     "new_subscription_details":subscription_data},
+                      status=status.HTTP_201_CREATED
+                      )
